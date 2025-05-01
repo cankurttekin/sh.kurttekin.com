@@ -1,0 +1,27 @@
+# Binaries and build artifacts
+sshportfolio
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Deployment scripts and config
+deploy.sh
+setup-app.sh
+sshserver.service
+sshserver-sshd.service
+
+# AWS specific files
+*.pem
+.aws/
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Go specific
+*.test
+*.out
+/vendor/

@@ -1,7 +1,7 @@
 #!/bin/bash
 # AWS SSH TUI Portfolio Deployment Script
 
-# Configuration - replace these with your actual values
+# Configuration 
 AWS_KEY="path/to/your-key.pem"
 AWS_HOST="ec2-user@your-ec2-instance-ip"
 PROJECT_NAME="sh.kurttekin.com"
