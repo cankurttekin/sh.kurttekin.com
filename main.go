@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"strings"
+	"os/exec"
 	"regexp"
+	"runtime"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -12,12 +14,12 @@ import (
 )
 
 var (
-	titleStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).PaddingBottom(1)
-	sectionStyle    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	focusedStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	inactiveStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	contentStyle    = lipgloss.NewStyle().PaddingLeft(4)
-	linkStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
+	titleStyle        = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).PaddingBottom(1)
+	sectionStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	focusedStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	inactiveStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	contentStyle      = lipgloss.NewStyle().PaddingLeft(4)
+	linkStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
 	selectedLinkStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212")).Underline(true)
 )
 
@@ -25,7 +27,7 @@ type model struct {
 	sectionCursor int
 	linkCursor    int
 	inLinkMode    bool
-	links         []string
+	links         []string  // Links in the current section
 	width         int
 	height        int
 }
@@ -36,21 +38,25 @@ type section struct {
 }
 
 var sections = []section{
-	{"About", []string{
-		"I'm a developer building TUI apps in Go.",
-		"Passionate about clean terminals and elegant CLI interfaces.",
+	{"about", []string{
+		"i am a software engineer and full-time observer and tinkerer.",
+		"i love all kinds of engineering and development. i love free software, freedom in general.",
 	}},
-	{"Projects", []string{
-		"🔧 TUI Portfolio (this one!)",
-		"📦 CLI Package Manager UI",
+	{"experience", []string{
+		"💼 software engineer @ akgun technology (2025 - Present)",
+		"🧪 software developer intern @ comp. (2020 - 2022)",
+		"🧑‍🎓 software developer intern @ comp. (2020 - 2021)",
+		"📚 software engineering student @ canakkale onsekiz mart university -- turkey (2017 - 2023)",
 	}},
-	{"Experience", []string{
-		"💼 Software Engineer @ TerminalTech (2022 - Present)",
-		"🧪 QA Tester @ ShellOps (2020 - 2022)",
+	{"projects", []string{
+		"🔧 ssh tui portfolio",
+		"",
+		"",
+		"",
 	}},
-	{"Links", []string{
-		"GitHub: https://github.com/you",
-		"LinkedIn: https://linkedin.com/in/you",
+	{"links", []string{
+		"github: https://github.com/cankurttekin",
+		"linkedin: https://linkedin.com/in/cankurttekin",
 	}},
 }
 
@@ -67,15 +73,42 @@ func findLinks(content []string) []string {
 	return links
 }
 
-func (m model) Init() tea.Cmd {
-	// Extract all links from content
-	var allLinks []string
-	for _, sec := range sections {
-		links := findLinks(sec.content)
-		allLinks = append(allLinks, links...)
+func openURL(url string) error {
+	var cmd *exec.Cmd
+	
+	switch runtime.GOOS {
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default:
+		return fmt.Errorf("unsupported platform")
 	}
 	
-	// No command to return
+	return cmd.Start()
+}
+
+// Message when a URL should be opened
+type openURLMsg string
+
+func openURLCommand(url string) tea.Cmd {
+	return func() tea.Msg {
+		err := openURL(url)
+		if err != nil {
+			return nil
+		}
+		return openURLMsg(url)
+	}
+}
+
+func (m model) Init() tea.Cmd {
+	// Get links for current section
+	if m.sectionCursor < len(sections) {
+		m.links = findLinks(sections[m.sectionCursor].content)
+	}
+	
 	return nil
 }
 
@@ -86,29 +119,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "tab":
-			// Toggle between section navigation and link selection
-			if m.inLinkMode {
-				m.inLinkMode = false
-			} else {
-				// Only enter link mode if there are links
-				links := []string{}
-				for _, sec := range sections {
-					secLinks := findLinks(sec.content)
-					links = append(links, secLinks...)
-				}
+			// Only toggle link mode if current section has links
+			currentSectionLinks := findLinks(sections[m.sectionCursor].content)
+			if len(currentSectionLinks) > 0 {
+				m.inLinkMode = !m.inLinkMode
+				m.links = currentSectionLinks
 				
-				if len(links) > 0 {
-					m.inLinkMode = true
-					m.links = links
-					// Reset link cursor if it's out of bounds
-					if m.linkCursor >= len(links) {
-						m.linkCursor = 0
-					}
+				// Reset link cursor when entering link mode
+				if m.inLinkMode && m.linkCursor >= len(m.links) {
+					m.linkCursor = 0
 				}
 			}
 		case "j", "down":
 			if m.inLinkMode {
-				// Navigate links
+				// Navigate links in current section
 				if m.linkCursor < len(m.links)-1 {
 					m.linkCursor++
 				}
@@ -116,11 +140,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Navigate sections
 				if m.sectionCursor < len(sections)-1 {
 					m.sectionCursor++
+					// Update links for the new section
+					m.links = findLinks(sections[m.sectionCursor].content)
+					m.inLinkMode = false
 				}
 			}
 		case "k", "up":
 			if m.inLinkMode {
-				// Navigate links
+				// Navigate links in current section
 				if m.linkCursor > 0 {
 					m.linkCursor--
 				}
@@ -128,19 +155,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Navigate sections
 				if m.sectionCursor > 0 {
 					m.sectionCursor--
+					// Update links for the new section
+					m.links = findLinks(sections[m.sectionCursor].content)
+					m.inLinkMode = false
 				}
 			}
 		case "enter":
-			if m.inLinkMode && len(m.links) > 0 {
-				// In a real app, you'd handle opening the link here
-				// For now we just return to section mode
-				m.inLinkMode = false
+			if m.inLinkMode && m.linkCursor < len(m.links) {
+				// Open the selected link in a browser
+				return m, openURLCommand(m.links[m.linkCursor])
 			}
 		}
 	case tea.WindowSizeMsg:
 		// Update the model with the new window size
 		m.width = msg.Width
 		m.height = msg.Height
+	case openURLMsg:
 	}
 	return m, nil
 }
@@ -150,21 +180,16 @@ func (m model) View() string {
 	doc := strings.Builder{}
 	
 	// Title
-	doc.WriteString(titleStyle.Render("🌿 My TUI Portfolio") + "\n\n")
+	doc.WriteString(titleStyle.Render("cankurttekin") + "\n\n")
 	
-	// Find all links for highlighting
-	allLinks := []string{}
-	for _, sec := range sections {
-		secLinks := findLinks(sec.content)
-		allLinks = append(allLinks, secLinks...)
-	}
-	m.links = allLinks
-	
-	// Render each section with proper padding and styling
+	// Render each section with padding and styling
 	for i, sec := range sections {
 		// Determine cursor and style based on selection
 		cursor := "  "
 		style := inactiveStyle
+		
+		// Section is focused if it's selected and we're not in link mode
+		// OR if it's selected and we are in link mode (both are the same section)
 		if i == m.sectionCursor && !m.inLinkMode {
 			cursor = "➜ "
 			style = focusedStyle
@@ -176,9 +201,13 @@ func (m model) View() string {
 		
 		// Always render content for all sections
 		content := strings.Builder{}
+		
+		// Only highlight links in the current section when in link mode
+		shouldHighlightLinks := i == m.sectionCursor && m.inLinkMode
+		
 		for _, line := range sec.content {
 			// Check if this line contains links that need highlighting
-			if m.inLinkMode {
+			if shouldHighlightLinks {
 				re := regexp.MustCompile(`(https?://\S+)`)
 				formattedLine := line
 				
@@ -193,7 +222,7 @@ func (m model) View() string {
 					// Determine if this link is selected
 					isSelected := false
 					for linkIdx, l := range m.links {
-						if l == linkText && linkIdx == m.linkCursor && m.inLinkMode {
+						if l == linkText && linkIdx == m.linkCursor {
 							isSelected = true
 							break
 						}
@@ -213,7 +242,31 @@ func (m model) View() string {
 				
 				content.WriteString(formattedLine + "\n")
 			} else {
-				content.WriteString(line + "\n")
+				// If it's the current section but not in link mode,
+				// still show links but in normal link style
+				if i == m.sectionCursor && !m.inLinkMode {
+					re := regexp.MustCompile(`(https?://\S+)`)
+					formattedLine := line
+					
+					// Find all links in this line
+					matches := re.FindAllStringIndex(line, -1)
+					
+					// Process the line from right to left to avoid index issues
+					for j := len(matches) - 1; j >= 0; j-- {
+						match := matches[j]
+						linkText := line[match[0]:match[1]]
+						
+						// Apply link style
+						styledLink := linkStyle.Render(linkText)
+						
+						// Replace the link in the line
+						formattedLine = formattedLine[:match[0]] + styledLink + formattedLine[match[1]:]
+					}
+					
+					content.WriteString(formattedLine + "\n")
+				} else {
+					content.WriteString(line + "\n")
+				}
 			}
 		}
 		
@@ -226,12 +279,17 @@ func (m model) View() string {
 	
 	// Footer with appropriate instructions
 	footerText := "Navigate sections with j/k"
-	if len(m.links) > 0 {
-		footerText += ", TAB to toggle link selection"
+	
+	// Only show TAB hint if current section has links
+	currentSectionLinks := findLinks(sections[m.sectionCursor].content)
+	if len(currentSectionLinks) > 0 {
+		if m.inLinkMode {
+			footerText = "Navigate links with j/k, ENTER to open in browser, TAB to exit link mode"
+		} else {
+			footerText += ", TAB to select links"
+		}
 	}
-	if m.inLinkMode {
-		footerText = "Navigate links with j/k, ENTER to select, TAB to exit link mode"
-	}
+	
 	footerText += ", quit with q"
 	
 	doc.WriteString(inactiveStyle.Render(footerText))
@@ -251,6 +309,7 @@ func handleSession(s ssh.Session) {
 		sectionCursor: 0,
 		linkCursor:    0,
 		inLinkMode:    false,
+		links:         findLinks(sections[0].content), // Get links for initial section
 		width:         pty.Window.Width,
 		height:        pty.Window.Height,
 	}
