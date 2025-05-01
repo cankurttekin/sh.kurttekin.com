@@ -5,17 +5,23 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cankurttekin/sh.kurttekin.com/internal/server"
 )
 
 func main() {
-	// Get configuration from command line flags
-	var config server.Config
+	// Start with default configuration
+	config := server.DefaultConfig()
 
-	// Define command line flags
-	flag.StringVar(&config.ListenAddr, "addr", ":2222", "SSH server address")
-	flag.StringVar(&config.KeyPath, "key", "", "Path to SSH server key (optional)")
+	// Override defaults with command line flags
+	flag.StringVar(&config.ListenAddr, "addr", config.ListenAddr, "SSH server address")
+	flag.StringVar(&config.KeyPath, "key", config.KeyPath, "Path to SSH server key (optional)")
+
+	// Create a temporary variable for the log flag to detect if it was explicitly set
+	var logFilePath string
+	flag.StringVar(&logFilePath, "log", "", "Path to connection log file (optional, default: tuiserver_connections.log)")
 
 	// Custom usage message
 	flag.Usage = func() {
@@ -26,6 +32,28 @@ func main() {
 
 	// Parse flags
 	flag.Parse()
+
+	// If log file was explicitly set, override the default
+	if logFilePath != "" {
+		config.LogFile = logFilePath
+	}
+
+	// Handle relative paths for the log file
+	if config.LogFile != "" && !filepath.IsAbs(config.LogFile) {
+		// If it's a simple filename without directory separators, place it in the executable directory
+		if !strings.Contains(config.LogFile, "/") && !strings.Contains(config.LogFile, "\\") {
+			execPath, err := os.Executable()
+			if err == nil {
+				config.LogFile = filepath.Join(filepath.Dir(execPath), config.LogFile)
+			}
+		} else {
+			// If it contains path separators but is still relative, make it relative to current working directory
+			absPath, err := filepath.Abs(config.LogFile)
+			if err == nil {
+				config.LogFile = absPath
+			}
+		}
+	}
 
 	// Start the SSH server
 	if err := server.Start(config); err != nil {

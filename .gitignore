@@ -10,6 +10,7 @@ deploy.sh
 setup-app.sh
 sshserver.service
 sshserver-sshd.service
+tuiserver_connections.log
 
 # AWS specific files
 *.pem
