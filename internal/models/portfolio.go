@@ -1,11 +1,13 @@
 package models
 
+// Portfolio represents the complete user profile and content
 type Portfolio struct {
 	Title    string    // User's name or title
 	Sections []Section // Content sections
 	Theme    Theme     // Color theme settings
 }
 
+// Theme defines color settings for the TUI application
 type Theme struct {
 	Primary   string // Primary color (for highlights, borders)
 	Accent    string // Accent color (for selected items)
@@ -15,9 +17,15 @@ type Theme struct {
 	Selection string // Color for selected links
 }
 
+// DefaultPortfolio provides the default portfolio configuration
+// CUSTOMIZE THIS FUNCTION to update your personal information and preferences
+// This is the main place to change your portfolio content when deployed to AWS
 func DefaultPortfolio() Portfolio {
 	return Portfolio{
+		// Update this to your name or preferred title
 		Title: "cankurttekin",
+
+		// Add, remove, or modify sections as needed
 		Sections: []Section{
 			{
 				Title: "about",
@@ -32,15 +40,15 @@ func DefaultPortfolio() Portfolio {
 				},
 			},
 			/*
-			{
-				Title: "experience",
-				Content: []string{
-					"software engineer @ akgun technology (2025 - Present)",
-					"software developer intern @ comp. (2020 - 2022)",
-					"software developer intern @ comp. (2020 - 2021)",
-					"computer engineering @ canakkale onsekiz mart university -- turkey (2017 - 2023)",
+				{
+					Title: "experience",
+					Content: []string{
+						"software engineer @ akgun technology (2025 - Present)",
+						"software developer intern @ comp. (2020 - 2022)",
+						"software developer intern @ comp. (2020 - 2021)",
+						"computer engineering @ canakkale onsekiz mart university -- turkey (2017 - 2023)",
+					},
 				},
-			},
 			*/
 			{
 				Title: "projects",
@@ -71,10 +79,12 @@ func DefaultPortfolio() Portfolio {
 					"bigclivedotcom: https://www.youtube.com/@bigclivedotcom",
 					"computerphile: https://www.youtube.com/@Computerphile",
 					"low level: https://www.youtube.com/@LowLevel",
-
 				},
 			},
 		},
+
+		// Customize the theme colors to match your personal preference
+		// These are standard hex color codes
 		Theme: Theme{
 			Primary:   "#5f87ff", // Vibrant blue
 			Accent:    "#ff6ac1", // Pink
@@ -87,7 +97,10 @@ func DefaultPortfolio() Portfolio {
 }
 
 // GetPortfolio returns the portfolio information
-// This is the function you would modify if you want to load from a file instead
+// This function could be modified to load portfolio data from a file or database
+// For AWS deployment, you can change DefaultPortfolio() or modify this to load from a config file
 func GetPortfolio() Portfolio {
+	// For production: Consider loading from a JSON/YAML file for easier updates
+	// This would allow you to update content without recompiling
 	return DefaultPortfolio()
 }
