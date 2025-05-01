@@ -13,19 +13,19 @@ import (
 	"github.com/cankurttekin/sh.kurttekin.com/pkg/browser"
 )
 
-// Model represents the state of the TUI application
+// Model represents the state
 type Model struct {
-	SectionCursor int      // Active section
-	LinkCursor    int      // Active link
-	InLinkMode    bool     // Whether we're in link mode
-	Links         []string // Links in the current section
-	TabTitles     []string // Tab titles
-	Width         int      // Terminal width
-	Height        int      // Terminal height
-	StatusMode    string   // Status bar mode indicator
-	StatusMessage string   // Status bar message
-	ShowWelcome   bool     // Whether to show the welcome screen
-	Title         string   // Title of the current section
+	SectionCursor int              // Active section
+	LinkCursor    int              // Active link
+	InLinkMode    bool             // Whether we're in link mode
+	Links         []string         // Links in the current section
+	TabTitles     []string         // Tab titles
+	Width         int              // Terminal width
+	Height        int              // Terminal height
+	StatusMode    string           // Status bar mode indicator
+	StatusMessage string           // Status bar message
+	ShowWelcome   bool             // Whether to show the welcome screen
+	Portfolio     models.Portfolio // Portfolio data
 }
 
 // Message when a URL should be opened
@@ -36,9 +36,11 @@ type welcomeDoneMsg struct{}
 
 // NewModel creates and initializes a new TUI model
 func NewModel(width, height int) Model {
+	portfolio := models.GetPortfolio()
+
 	// Create tab titles from section titles
 	var tabTitles []string
-	for _, sec := range models.Sections {
+	for _, sec := range portfolio.Sections {
 		tabTitles = append(tabTitles, sec.Title)
 	}
 
@@ -52,12 +54,12 @@ func NewModel(width, height int) Model {
 		StatusMode:    "NORMAL",
 		StatusMessage: "Ready",
 		ShowWelcome:   true,
-		Title:         "cankurttekin",
+		Portfolio:     portfolio,
 	}
 
 	// Get links for initial section
-	if len(models.Sections) > 0 {
-		m.Links = FindLinks(models.Sections[0].Content)
+	if len(portfolio.Sections) > 0 {
+		m.Links = FindLinks(portfolio.Sections[0].Content)
 	}
 
 	return m
@@ -65,7 +67,7 @@ func NewModel(width, height int) Model {
 
 // dismiss the welcome screen after a delay
 func welcomeScreenTimer() tea.Cmd {
-	return tea.Tick(3*time.Second, func(time.Time) tea.Msg {
+	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
 		return welcomeDoneMsg{}
 	})
 }
@@ -109,7 +111,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			// Only toggle link mode if current section has links
-			currentSectionLinks := FindLinks(models.Sections[m.SectionCursor].Content)
+			currentSectionLinks := FindLinks(m.Portfolio.Sections[m.SectionCursor].Content)
 			if len(currentSectionLinks) > 0 {
 				m.InLinkMode = !m.InLinkMode
 				m.Links = currentSectionLinks
@@ -135,13 +137,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				// Navigate sections
-				if m.SectionCursor < len(models.Sections)-1 {
+				if m.SectionCursor < len(m.Portfolio.Sections)-1 {
 					m.SectionCursor++
 					// Update links for the new section
-					m.Links = FindLinks(models.Sections[m.SectionCursor].Content)
+					m.Links = FindLinks(m.Portfolio.Sections[m.SectionCursor].Content)
 					m.InLinkMode = false
 					m.StatusMode = "NORMAL"
-					m.StatusMessage = fmt.Sprintf("Section: %s", models.Sections[m.SectionCursor].Title)
+					m.StatusMessage = fmt.Sprintf("Section: %s", m.Portfolio.Sections[m.SectionCursor].Title)
 				}
 			}
 		case "k", "up":
@@ -156,10 +158,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.SectionCursor > 0 {
 					m.SectionCursor--
 					// Update links for the new section
-					m.Links = FindLinks(models.Sections[m.SectionCursor].Content)
+					m.Links = FindLinks(m.Portfolio.Sections[m.SectionCursor].Content)
 					m.InLinkMode = false
 					m.StatusMode = "NORMAL"
-					m.StatusMessage = fmt.Sprintf("Section: %s", models.Sections[m.SectionCursor].Title)
+					m.StatusMessage = fmt.Sprintf("Section: %s", m.Portfolio.Sections[m.SectionCursor].Title)
 				}
 			}
 		case "enter":
@@ -186,14 +188,11 @@ func (m Model) renderWelcomeScreen() string {
 	width := m.Width
 	height := m.Height
 
-	welcomeMsg := "━━━ " + m.Title + " ━━━"
+	// Simple welcome message
+	welcomeMsg := "━━━ " + m.Portfolio.Title + " ━━━"
 
-	welcomeStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#61afef"))
-
-	// Render the styled message
-	styledMsg := welcomeStyle.Render(welcomeMsg)
+	// Use the consolidated WelcomeTextStyle from styles.go
+	styledMsg := WelcomeTextStyle.Render(welcomeMsg)
 
 	// Center the message in the terminal
 	centeredMsg := lipgloss.Place(
@@ -223,26 +222,15 @@ func (m Model) View() string {
 	containerWidth := m.Width * 2 / 3  // Make the container 2/3 of the terminal width
 	contentWidth := containerWidth - 8 // Account for padding and borders
 
-	// Calculate a fixed height for the content area to keep box size consistent
-	fixedContentHeight := 16 // A reasonable height that should fit most content
-
-	// Decorative elements for the UI - commented out for now but may be used later
-	// divider := lipgloss.NewStyle().
-	// 	Foreground(lipgloss.Color("#5f87ff")).
-	// 	Render(strings.Repeat("═", contentWidth))
-
-	// Ornaments for the title
-	leftOrnament := lipgloss.NewStyle().Foreground(AccentColor).Render("◇")
-	rightOrnament := lipgloss.NewStyle().Foreground(AccentColor).Render("◇")
-	title := lipgloss.NewStyle().Foreground(lipgloss.Color("#5f87ff")).Render(m.Title)
+	// Ornaments for the title using style from styles.go
+	leftOrnament := OrnamentStyle.Render("◇")
+	rightOrnament := OrnamentStyle.Render("◇")
+	title := lipgloss.NewStyle().Foreground(PrimaryColor).Render(m.Portfolio.Title)
 
 	// Title with more flair
 	titleContent := fmt.Sprintf("%s %s %s", leftOrnament, title, rightOrnament)
 	titleStr := TitleStyle.Copy().
 		Width(contentWidth).
-		BorderStyle(lipgloss.Border{
-			Bottom: "━",
-		}).
 		Align(lipgloss.Center).
 		MarginBottom(0).
 		PaddingBottom(0).
@@ -250,7 +238,7 @@ func (m Model) View() string {
 
 	// Ensure tab titles are properly set
 	if len(m.TabTitles) == 0 {
-		for _, sec := range models.Sections {
+		for _, sec := range m.Portfolio.Sections {
 			m.TabTitles = append(m.TabTitles, sec.Title)
 		}
 	}
@@ -262,20 +250,17 @@ func (m Model) View() string {
 		Render(RenderTabs(m.TabTitles, m.SectionCursor, contentWidth))
 
 	// Get current section content
-	currentSection := models.Sections[m.SectionCursor]
+	currentSection := m.Portfolio.Sections[m.SectionCursor]
 
 	// Content container with section header
 	contentBuilder := strings.Builder{}
 
-	sectionHeader := lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Render("✦ " + strings.ToUpper(currentSection.Title) + " ✦")
-
+	// Use SectionHeaderStyle from styles.go
+	sectionHeader := SectionHeaderStyle.Render("✦ " + strings.ToUpper(currentSection.Title) + " ✦")
 	contentBuilder.WriteString(sectionHeader + "\n")
-	contentBuilder.WriteString(lipgloss.NewStyle().
-		Foreground(SubtleColor).
-		Render(strings.Repeat("─", contentWidth/2)) + "\n\n")
+
+	// Use SectionDividerStyle from styles.go
+	contentBuilder.WriteString(SectionDividerStyle.Render(strings.Repeat("─", contentWidth/2)) + "\n\n")
 
 	// Process section content
 	for _, line := range currentSection.Content {
@@ -305,8 +290,6 @@ func (m Model) View() string {
 				var styledLink string
 				if isSelected {
 					styledLink = SelectedLinkStyle.Copy().
-						Background(lipgloss.Color("#2a3040")).
-						Foreground(lipgloss.Color("#c678dd")).
 						Bold(true).
 						Underline(true).
 						Render("→ " + linkText)
@@ -326,7 +309,8 @@ func (m Model) View() string {
 			for j := len(matches) - 1; j >= 0; j-- {
 				match := matches[j]
 				linkText := line[match[0]:match[1]]
-				styledLink := LinkStyle.Render(linkText)
+				var styledLink string
+				styledLink = LinkStyle.Render(linkText)
 				processedLine = processedLine[:match[0]] + styledLink + processedLine[match[1]:]
 			}
 		}
@@ -335,9 +319,9 @@ func (m Model) View() string {
 		contentBuilder.WriteString("  " + processedLine + "\n")
 	}
 
-	// Style the content area with fixed height
+	// Style the content area with fixed height from styles.go
 	contentStr := lipgloss.NewStyle().
-		Height(fixedContentHeight).
+		Height(ContentHeight).
 		Render(SectionContentStyle.Render(contentBuilder.String()))
 
 	// Create help text with more flair
@@ -345,20 +329,16 @@ func (m Model) View() string {
 	if m.InLinkMode {
 		helpText = "↑/↓: navigate links • ENTER: open link • TAB: exit link mode • q: quit"
 	} else {
-		helpText = "↑/↓: navigate sections"
+		helpText = "↑/↓ - j/k: navigate sections"
 		if len(m.Links) > 0 {
 			helpText += " • TAB: enter link mode"
 		}
 		helpText += " • q: quit"
 	}
 
-	// Add a nice footer with status
-	footer := lipgloss.NewStyle().
-		Border(lipgloss.Border{Top: "─"}).
-		BorderForeground(SubtleColor).
-		Padding(0, 1).
+	// Add a nice footer with status using FooterStyle from styles.go
+	footer := FooterStyle.
 		Width(contentWidth).
-		Align(lipgloss.Center).
 		Render(helpText)
 
 	// Compose the full view in a more integrated way with consistent spacing
@@ -368,11 +348,8 @@ func (m Model) View() string {
 		contentStr,
 		footer)
 
-	// Wrap everything in a container with proper styling
-	wrappedView := lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(PrimaryColor).
-		Padding(1, 2).
+	// Wrap everything in a container with ContainerStyle from styles.go
+	wrappedView := ContainerStyle.
 		Width(containerWidth).
 		Render(contentArea)
 

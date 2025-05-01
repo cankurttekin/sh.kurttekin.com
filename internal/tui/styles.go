@@ -3,32 +3,41 @@ package tui
 import (
 	"strings"
 
+	"github.com/cankurttekin/sh.kurttekin.com/internal/models"
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Style management for the entire application
+// All styles and colors are defined here to ensure consistency
+
+// Portfolio instance to access theme data
+var portfolio = models.GetPortfolio()
+
+// Color palette - all colors used in the application should be defined here
 var (
 	BaseColor       = lipgloss.Color("#282c34")
-	PrimaryColor    = lipgloss.Color("#5f87ff") // Vibrant blue
-	AccentColor     = lipgloss.Color("#ff6ac1") // Pink
+	PrimaryColor    = lipgloss.Color(portfolio.Theme.Primary)
+	AccentColor     = lipgloss.Color(portfolio.Theme.Accent)
 	SuccessColor    = lipgloss.Color("#98c379") // Green
 	WarningColor    = lipgloss.Color("#e5c07b") // Yellow
 	DangerColor     = lipgloss.Color("#e06c75") // Red
-	TextColor       = lipgloss.Color("#abb2bf") // Light gray
-	SubtleColor     = lipgloss.Color("#565c64") // Dark gray
+	TextColor       = lipgloss.Color(portfolio.Theme.Text)
+	SubtleColor     = lipgloss.Color(portfolio.Theme.Subtle)
 	BackgroundColor = lipgloss.Color("#1e222a") // Very dark blue-gray
-	HighlightColor  = lipgloss.Color("#61afef") // Light blue for links
-	SelectionColor  = lipgloss.Color("#c678dd") // Purple for selections
+	HighlightColor  = lipgloss.Color(portfolio.Theme.Links)
+	SelectionColor  = lipgloss.Color(portfolio.Theme.Selection)
+	LinkBackground  = lipgloss.Color("#2a3040") // Background for selected links
 )
 
-// Application layout values
+// Layout constants
 var (
-	TabWidth = 16
-
+	TabWidth         = 16
 	HorizontalMargin = 2
 	VerticalMargin   = 1
+	ContentHeight    = 16 // Fixed height for content area
 )
 
-// Base styles
+// Base text styles
 var (
 	// Base text style
 	BaseStyle = lipgloss.NewStyle().
@@ -49,10 +58,25 @@ var (
 			MarginBottom(1).
 			Italic(true).
 			Border(lipgloss.Border{
-			Bottom: "─",
+			Bottom: "━", // More decorative bottom border
 		}).
 		BorderForeground(PrimaryColor)
 
+	// Content container style
+	ContentStyle = lipgloss.NewStyle().
+			Padding(1, 2).
+			MarginTop(1)
+)
+
+// Welcome screen styles
+var (
+	WelcomeTextStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(HighlightColor)
+)
+
+// Tab styles
+var (
 	// Tab bar styles
 	TabBarStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), false, false, true).
@@ -71,32 +95,33 @@ var (
 	InactiveTabStyle = lipgloss.NewStyle().
 				Foreground(TextColor).
 				Padding(0, 2)
+)
 
-	// Content container style
-	ContentStyle = lipgloss.NewStyle().
-			Padding(1, 2).
-			MarginTop(1)
-
-	// Navigation styles
+// Navigation styles
+var (
 	FocusedStyle = lipgloss.NewStyle().
 			Foreground(AccentColor).
 			Bold(true)
 
 	InactiveStyle = lipgloss.NewStyle().
 			Foreground(SubtleColor)
+)
 
-	// Link styles
+// Link styles
+var (
 	LinkStyle = lipgloss.NewStyle().
 			Foreground(HighlightColor).
 			Underline(true)
 
 	SelectedLinkStyle = lipgloss.NewStyle().
 				Foreground(SelectionColor).
-				Background(lipgloss.Color("#2c323c")).
+				Background(LinkBackground).
 				Bold(true).
 				Underline(true)
+)
 
-	// Status bar styles
+// Status bar styles
+var (
 	StatusBarStyle = lipgloss.NewStyle().
 			Background(PrimaryColor).
 			Foreground(lipgloss.Color("#000000")).
@@ -115,7 +140,10 @@ var (
 				Foreground(TextColor).
 				Italic(true).
 				Padding(0, 1)
+)
 
+// Content styles
+var (
 	// Section content style
 	SectionContentStyle = lipgloss.NewStyle().
 				PaddingLeft(2).
@@ -128,6 +156,32 @@ var (
 	HighlightedItemStyle = lipgloss.NewStyle().
 				Foreground(SuccessColor).
 				PaddingLeft(2)
+
+	// Section header style
+	SectionHeaderStyle = lipgloss.NewStyle().
+				Foreground(PrimaryColor).
+				Bold(true)
+
+	// Section divider style
+	SectionDividerStyle = lipgloss.NewStyle().
+				Foreground(SubtleColor)
+
+	// Footer style
+	FooterStyle = lipgloss.NewStyle().
+			Border(lipgloss.Border{Top: "─"}).
+			BorderForeground(SubtleColor).
+			Padding(0, 1).
+			Align(lipgloss.Center)
+
+	// Title ornament style
+	OrnamentStyle = lipgloss.NewStyle().
+			Foreground(AccentColor)
+
+	// Main container style
+	ContainerStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(PrimaryColor).
+			Padding(1, 2)
 )
 
 // TabBorder returns a customized tab border (straight)
