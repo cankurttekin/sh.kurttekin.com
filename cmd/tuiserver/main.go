@@ -7,33 +7,28 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
 	"github.com/cankurttekin/sh.kurttekin.com/internal/server"
 )
 
 func main() {
-	// Start with default configuration
 	config := server.DefaultConfig()
 
-	// Override defaults with command line flags
+	// overriding default values with command line flags 
 	flag.StringVar(&config.ListenAddr, "addr", config.ListenAddr, "SSH server address")
 	flag.StringVar(&config.KeyPath, "key", config.KeyPath, "Path to SSH server key (optional)")
 
-	// Create a temporary variable for the log flag to detect if it was explicitly set
 	var logFilePath string
 	flag.StringVar(&logFilePath, "log", "", "Path to connection log file (optional, default: tuiserver_connections.log)")
 
-	// Custom usage message
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 	}
 
-	// Parse flags
 	flag.Parse()
 
-	// If log file was explicitly set, override the default
+	// if log set override
 	if logFilePath != "" {
 		config.LogFile = logFilePath
 	}

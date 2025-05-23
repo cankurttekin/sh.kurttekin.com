@@ -1,13 +1,11 @@
 package models
 
-// Portfolio represents the complete user profile and content
 type Portfolio struct {
-	Title    string    // User's name or title
-	Sections []Section // Content sections
-	Theme    Theme     // Color theme settings
+	Title    string    // name or title 
+	Sections []Section // content sections
+	Theme    Theme     // color scheme
 }
 
-// Theme defines color settings for the TUI application
 type Theme struct {
 	Primary   string // Primary color (for highlights, borders)
 	Accent    string // Accent color (for selected items)
@@ -17,43 +15,39 @@ type Theme struct {
 	Selection string // Color for selected links
 }
 
-// DefaultPortfolio provides the default portfolio configuration
-// CUSTOMIZE THIS FUNCTION to update your personal information and preferences
-// This is the main place to change your portfolio content when deployed to AWS
 func DefaultPortfolio() Portfolio {
 	return Portfolio{
-		// Update this to your name or preferred title
 		Title: "cankurttekin",
-
-		// Add, remove, or modify sections as needed
 		Sections: []Section{
 			{
 				Title: "about",
 				Content: []string{
 					"i am a software engineer and full-time observer and tinkerer.",
-					"i love all kinds of engineering and development. i love free software, freedom in general.\n",
-					"github: https://github.com/cankurttekin",
-					"linkedin: https://linkedin.com/in/cankurttekin",
+					"i love all kinds of engineering and development.",
+					"i love free software, freedom in general.\n",
+					"mail: cankurttekin [at] gmail [dot] com",
 					"website: https://can.kurttekin.com",
 					"blog: https://blog.kurttekin.com",
+					"github: https://github.com/cankurttekin",
+					"linkedin: https://linkedin.com/in/cankurttekin",
 					"gpg: https://pgp.mit.edu/pks/lookup?op=get&search=0xAC9A980E2",
 				},
 			},
 			/*
-				{
-					Title: "experience",
-					Content: []string{
-						"software engineer @ akgun technology (2025 - Present)",
-						"software developer intern @ comp. (2020 - 2022)",
-						"software developer intern @ comp. (2020 - 2021)",
-						"computer engineering @ canakkale onsekiz mart university -- turkey (2017 - 2023)",
-					},
+			{
+				Title: "experience",
+				Content: []string{
+					"software engineer @ akgun technology (2025 - Present)",
+					"software developer intern @ comp. (2020 - 2022)",
+					"software developer intern @ comp. (2020 - 2021)",
+					"computer engineering @ canakkale onsekiz mart university -- turkey (2017 - 2023)",
 				},
+			},
 			*/
 			{
 				Title: "projects",
 				Content: []string{
-					"",
+					"this.portfolio!",
 					"",
 					"",
 					"",
@@ -66,7 +60,7 @@ func DefaultPortfolio() Portfolio {
 					"text editor: neovim",
 					"terminal: foot",
 					"browser: fennec on android, firefox on desktop with vimium",
-					"ad blocking: old android phone running debian(chroot) with pi-hole dns sinkhole and ublock origin on browsers",
+					"ad blocking: ublock and old android phone running debian(chroot) & pi-hole",
 					"dotfiles: https://github.com/cankurttekin/dotfiles",
 				},
 			},
@@ -83,24 +77,18 @@ func DefaultPortfolio() Portfolio {
 			},
 		},
 
-		// Customize the theme colors to match your personal preference
-		// These are standard hex color codes
 		Theme: Theme{
 			Primary:   "#5f87ff", // Vibrant blue
 			Accent:    "#ff6ac1", // Pink
 			Text:      "#abb2bf", // Light gray
 			Subtle:    "#565c64", // Dark gray
-			Links:     "#61afef", // Light blue for links
-			Selection: "#c678dd", // Purple for selections
+			Links:     "#61afef", // Light blue
+			Selection: "#c678dd", // Purple
 		},
 	}
 }
 
-// GetPortfolio returns the portfolio information
-// This function could be modified to load portfolio data from a file or database
-// For AWS deployment, you can change DefaultPortfolio() or modify this to load from a config file
+// modify to load from a file or database
 func GetPortfolio() Portfolio {
-	// For production: Consider loading from a JSON/YAML file for easier updates
-	// This would allow you to update content without recompiling
 	return DefaultPortfolio()
 }
