@@ -8,7 +8,6 @@ import (
 )
 
 // Style management for the entire application
-// All styles and colors are defined here to ensure consistency
 
 // Portfolio instance to access theme data
 var portfolio = models.GetPortfolio()
@@ -23,18 +22,18 @@ var (
 	DangerColor     = lipgloss.Color("#e06c75") // Red
 	TextColor       = lipgloss.Color(portfolio.Theme.Text)
 	SubtleColor     = lipgloss.Color(portfolio.Theme.Subtle)
-	BackgroundColor = lipgloss.Color("#1e222a") // Very dark blue-gray
+	BackgroundColor = lipgloss.Color("#1e222a")
 	HighlightColor  = lipgloss.Color(portfolio.Theme.Links)
 	SelectionColor  = lipgloss.Color(portfolio.Theme.Selection)
-	LinkBackground  = lipgloss.Color("#2a3040") // Background for selected links
+	LinkBackground  = lipgloss.Color("#2a3040")
 )
 
 // Layout constants
 var (
 	TabWidth         = 16
 	HorizontalMargin = 2
-	VerticalMargin   = 1
-	ContentHeight    = 16 // Fixed height for content area
+	VerticalMargin   = 0
+	ContentHeight    = 16
 )
 
 // Base text styles
@@ -58,7 +57,7 @@ var (
 			MarginBottom(1).
 			Italic(true).
 			Border(lipgloss.Border{
-			Bottom: "━", // More decorative bottom border
+			Bottom: "━",
 		}).
 		BorderForeground(PrimaryColor)
 
@@ -168,7 +167,7 @@ var (
 
 	// Footer style
 	FooterStyle = lipgloss.NewStyle().
-			Border(lipgloss.Border{Top: "─"}).
+			Border(lipgloss.Border{Top: "━"}).
 			BorderForeground(SubtleColor).
 			Padding(0, 1).
 			Align(lipgloss.Center)
@@ -219,7 +218,7 @@ func RenderTabs(titles []string, activeTab int, width int) string {
 			tabText = title[:TabWidth-7] + "..."
 		}
 
-		// Capitalize the first letter to make tabs more visible
+		// capitalize the first letter to make tabs more visible
 		if len(tabText) > 0 {
 			tabText = strings.ToUpper(tabText[:1]) + tabText[1:]
 		}
@@ -237,12 +236,10 @@ func RenderTabs(titles []string, activeTab int, width int) string {
 
 // RenderStatusBar creates a Neovim-like status bar
 func RenderStatusBar(mode string, message string, width int) string {
-	// Default mode is "NORMAL"
 	if mode == "" {
 		mode = "NORMAL"
 	}
 
-	// Render mode indicator
 	modeIndicator := ModeIndicatorStyle.Render(mode)
 
 	// Right side information (status message)
@@ -255,7 +252,7 @@ func RenderStatusBar(mode string, message string, width int) string {
 	padding := lipgloss.NewStyle().
 		Background(SubtleColor).
 		Width(remainingWidth).
-		Render("")
+		Render()
 
 	// Join all parts
 	return lipgloss.JoinHorizontal(lipgloss.Top, modeIndicator, padding, statusMsg)

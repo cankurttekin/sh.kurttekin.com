@@ -13,7 +13,6 @@ import (
 	"github.com/cankurttekin/sh.kurttekin.com/pkg/browser"
 )
 
-// Model represents the state
 type Model struct {
 	SectionCursor int              // Active section
 	LinkCursor    int              // Active link
@@ -28,17 +27,17 @@ type Model struct {
 	Portfolio     models.Portfolio // Portfolio data
 }
 
-// Message when a URL should be opened
+// message when a URL should be opened
 type openURLMsg string
 
-// Message to indicate the welcome screen should be dismissed
+// message to indicate the welcome screen should be dismissed
 type welcomeDoneMsg struct{}
 
-// NewModel creates and initializes a new TUI model
+// initializes a new TUI model
 func NewModel(width, height int) Model {
 	portfolio := models.GetPortfolio()
 
-	// Create tab titles from section titles
+	// create tab titles from section titles
 	var tabTitles []string
 	for _, sec := range portfolio.Sections {
 		tabTitles = append(tabTitles, sec.Title)
@@ -57,7 +56,7 @@ func NewModel(width, height int) Model {
 		Portfolio:     portfolio,
 	}
 
-	// Get links for initial section
+	// get links for initial section
 	if len(portfolio.Sections) > 0 {
 		m.Links = FindLinks(portfolio.Sections[0].Content)
 	}
@@ -72,35 +71,32 @@ func welcomeScreenTimer() tea.Cmd {
 	})
 }
 
-// openURLCommand returns a command to open a URL
 func openURLCommand(url string) tea.Cmd {
 	return func() tea.Msg {
 		err := browser.OpenURL(url)
 		if err != nil {
-			// Just return nil if there was an error
 			return nil
 		}
 		return openURLMsg(url)
 	}
 }
 
-// Init initializes the model
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.ClearScreen,
-		welcomeScreenTimer(), // Start the welcome screen timer
+		welcomeScreenTimer(),
 	)
 }
 
-// Update handles all the business logic and state updates
+// update handles all the business logic and state updates
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case welcomeDoneMsg:
-		// Time to dismiss the welcome screen
+		// time to dismiss the welcome screen
 		m.ShowWelcome = false
 		return m, nil
 	case tea.KeyMsg:
-		// Dismiss welcome screen immediately on any key press
+		// dismiss welcome screen immediately on any key press
 		if m.ShowWelcome {
 			m.ShowWelcome = false
 			return m, nil
@@ -110,7 +106,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "tab":
-			// Only toggle link mode if current section has links
+			// only toggle link mode if current section has links
 			currentSectionLinks := FindLinks(m.Portfolio.Sections[m.SectionCursor].Content)
 			if len(currentSectionLinks) > 0 {
 				m.InLinkMode = !m.InLinkMode
@@ -119,7 +115,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.InLinkMode {
 					m.StatusMode = "LINK"
 					m.StatusMessage = fmt.Sprintf("Links: %d", len(m.Links))
-					// Reset link cursor when entering link mode
+					// reset link cursor when entering link mode
 					if m.LinkCursor >= len(m.Links) {
 						m.LinkCursor = 0
 					}
@@ -219,15 +215,14 @@ func (m Model) View() string {
 	}
 
 	// Calculate container dimensions
-	containerWidth := m.Width * 2 / 3  // Make the container 2/3 of the terminal width
-	contentWidth := containerWidth - 8 // Account for padding and borders
+	containerWidth := m.Width * 2 / 3
+	contentWidth := containerWidth - 8
 
 	// Ornaments for the title using style from styles.go
 	leftOrnament := OrnamentStyle.Render("◇")
 	rightOrnament := OrnamentStyle.Render("◇")
 	title := lipgloss.NewStyle().Foreground(PrimaryColor).Render(m.Portfolio.Title)
 
-	// Title with more flair
 	titleContent := fmt.Sprintf("%s %s %s", leftOrnament, title, rightOrnament)
 	titleStr := TitleStyle.Copy().
 		Width(contentWidth).
@@ -236,14 +231,14 @@ func (m Model) View() string {
 		PaddingBottom(0).
 		Render(titleContent)
 
-	// Ensure tab titles are properly set
+	// ensuring tab titles are properly set
 	if len(m.TabTitles) == 0 {
 		for _, sec := range m.Portfolio.Sections {
 			m.TabTitles = append(m.TabTitles, sec.Title)
 		}
 	}
 
-	// Render tabs with proper width
+	// render tabs with proper width
 	tabsStr := lipgloss.NewStyle().
 		MarginTop(1).
 		MarginBottom(1).
@@ -256,7 +251,7 @@ func (m Model) View() string {
 	contentBuilder := strings.Builder{}
 
 	// Use SectionHeaderStyle from styles.go
-	sectionHeader := SectionHeaderStyle.Render("✦ " + strings.ToUpper(currentSection.Title) + " ✦")
+	sectionHeader := SectionHeaderStyle.Render("✦" + strings.ToUpper(currentSection.Title) + "✦")
 	contentBuilder.WriteString(sectionHeader + "\n")
 
 	// Use SectionDividerStyle from styles.go
@@ -286,7 +281,6 @@ func (m Model) View() string {
 					}
 				}
 
-				// Apply appropriate style with more emphasis
 				var styledLink string
 				if isSelected {
 					styledLink = SelectedLinkStyle.Copy().
@@ -301,11 +295,9 @@ func (m Model) View() string {
 				processedLine = processedLine[:match[0]] + styledLink + processedLine[match[1]:]
 			}
 		} else {
-			// Not in link mode, just style links
 			re := regexp.MustCompile(`(https?://\S+)`)
 			matches := re.FindAllStringIndex(line, -1)
 
-			// Process matches from right to left
 			for j := len(matches) - 1; j >= 0; j-- {
 				match := matches[j]
 				linkText := line[match[0]:match[1]]
@@ -324,36 +316,35 @@ func (m Model) View() string {
 		Height(ContentHeight).
 		Render(SectionContentStyle.Render(contentBuilder.String()))
 
-	// Create help text with more flair
 	var helpText string
 	if m.InLinkMode {
-		helpText = "↑/↓: navigate links • ENTER: open link • TAB: exit link mode • q: quit"
+		helpText = "↑/↓: navigate links • enter: open link • tab: exit link mode • q: quit"
 	} else {
-		helpText = "↑/↓ - j/k: navigate sections"
+		helpText = "↑/↓ : navigate sections"
 		if len(m.Links) > 0 {
-			helpText += " • TAB: enter link mode"
+			helpText += " • tab: enter link mode"
 		}
 		helpText += " • q: quit"
 	}
 
-	// Add a nice footer with status using FooterStyle from styles.go
 	footer := FooterStyle.
 		Width(contentWidth).
 		Render(helpText)
 
-	// Compose the full view in a more integrated way with consistent spacing
-	contentArea := fmt.Sprintf("%s\n%s\n%s\n%s",
+	statusBar := StatusBarStyle.
+		Render(RenderStatusBar(m.StatusMode, m.StatusMessage, contentWidth))
+
+	contentArea := fmt.Sprintf("%s\n%s\n%s\n%s\n%s",
 		titleStr,
 		tabsStr,
 		contentStr,
-		footer)
+		footer,
+		statusBar)
 
-	// Wrap everything in a container with ContainerStyle from styles.go
 	wrappedView := ContainerStyle.
 		Width(containerWidth).
 		Render(contentArea)
 
-	// Center the wrapped view in the terminal
 	centeredView := lipgloss.Place(
 		m.Width,
 		m.Height,
@@ -362,6 +353,5 @@ func (m Model) View() string {
 		wrappedView,
 	)
 
-	// Return the fully composed and centered view
 	return centeredView
 }
